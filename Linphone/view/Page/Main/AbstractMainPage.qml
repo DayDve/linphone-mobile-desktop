@@ -78,7 +78,8 @@ FocusScope {
 
 			RowLayout {
 				id: mobileBackBar
-				visible: mainItem.mobileDetailOnly && !mainItem.mobileOwnBackButton
+				// Pages pushed above the detail (meeting or contact edition) have their own back button
+				visible: mainItem.mobileDetailOnly && !mainItem.mobileOwnBackButton && rightPanelStackView.depth <= 1
 				anchors.left: parent.left
 				anchors.right: parent.right
 				anchors.top: parent.top

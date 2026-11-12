@@ -77,6 +77,9 @@ AbstractMainPage {
 				|| (leftPanelStackView.currentItem && leftPanelStackView.currentItem.objectName === "createConf")) return
 		if (selectedConference && selectedConference.core && selectedConference.core.haveModel) {
 			rightPanelStackView.push(meetingDetail, Control.StackView.Immediate)
+		} else {
+			// Phone: nothing left to show (meeting deleted), back to the list
+			mainItem.closeDetail()
 		}
 	}
 
