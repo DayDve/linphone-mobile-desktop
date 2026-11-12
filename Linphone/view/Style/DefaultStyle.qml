@@ -5,6 +5,10 @@ import SettingsCpp
 
 QtObject {
 
+	// Phone: a page shows its detail view full screen (set by AbstractMainPage). The main layout then
+	// hides the bottom navigation and the search row, like the Android app.
+	property bool mobileDetailShown: false
+
 	property var currentTheme: Themes.themes.hasOwnProperty(SettingsCpp.themeMainColor)
 							  ? Themes.themes[SettingsCpp.themeMainColor]
 							  : Themes.themes["orange"]

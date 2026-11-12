@@ -58,6 +58,7 @@ AbstractMainPage {
 			item.forceActiveFocus()
 		} else {
 			mainItem.selectedConference = confInfoGui
+			mainItem.openDetail()
 			item = rightPanelStackView.push(editConf, {"conferenceInfoGui": mainItem.selectedConference})
 			item.forceActiveFocus()
 		}
@@ -265,6 +266,7 @@ AbstractMainPage {
 						when: conferenceList.loading
 						value: false
 					}
+					onItemPressed: mainItem.openDetail()
 					onSelectedConferenceChanged: {
 						mainItem.selectedConference = selectedConference
 					}

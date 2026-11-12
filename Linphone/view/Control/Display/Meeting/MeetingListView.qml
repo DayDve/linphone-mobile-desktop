@@ -36,6 +36,8 @@ ListView {
 	}
 
 	signal meetingDeletionRequested(ConferenceInfoGui confInfo, bool canCancel)
+	// Explicit user choice (phone: open the meeting full screen)
+	signal itemPressed()
 	
 	function selectIndex(index){
 		mainItem.currentIndex = index
@@ -424,7 +426,10 @@ ListView {
 								deletePopup.y = mouse.y
 								deletePopup.open()
 							}
-							else if (!itemDelegate.isCanceled) mainItem.selectIndex(index)
+							else if (!itemDelegate.isCanceled) {
+								mainItem.selectIndex(index)
+								mainItem.itemPressed()
+							}
 						}
 						Popup {
 							id: deletePopup

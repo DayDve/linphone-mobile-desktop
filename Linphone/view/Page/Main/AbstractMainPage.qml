@@ -30,11 +30,19 @@ FocusScope {
 	property bool detailOpen: false
 	readonly property bool mobileListOnly: DefaultStyle.mobile && !detailOpen
 	readonly property bool mobileDetailOnly: DefaultStyle.mobile && detailOpen
+	// The detail view has its own back button (chat header): no back bar above it.
+	property bool mobileOwnBackButton: false
+	onMobileDetailOnlyChanged: DefaultStyle.mobileDetailShown = mobileDetailOnly
 	signal detailClosed()
 	function openDetail() {
 		if (DefaultStyle.mobile) detailOpen = true
 	}
 	function closeDetail() {
+		// Phone: a field of the detail view (chat message) keeps the focus and the keyboard otherwise
+		if (DefaultStyle.mobile) {
+			Qt.inputMethod.hide()
+			mainItem.forceActiveFocus()
+		}
 		detailOpen = false
 		detailClosed()
 	}
@@ -70,7 +78,7 @@ FocusScope {
 
 			RowLayout {
 				id: mobileBackBar
-				visible: mainItem.mobileDetailOnly
+				visible: mainItem.mobileDetailOnly && !mainItem.mobileOwnBackButton
 				anchors.left: parent.left
 				anchors.right: parent.right
 				anchors.top: parent.top
@@ -93,7 +101,7 @@ FocusScope {
 			StackLayout {
 				currentIndex: mainItem.showDefaultItem ? 0 : 1
 				anchors.fill: parent
-				anchors.topMargin: mobileBackBar.height
+				anchors.topMargin: mobileBackBar.visible ? mobileBackBar.height : 0
 				ColumnLayout {
 					id: defaultItem
 					

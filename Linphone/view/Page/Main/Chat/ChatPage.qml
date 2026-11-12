@@ -92,6 +92,7 @@ AbstractMainPage {
     onNoItemButtonPressed: goToNewChat()
     signal newChatItemOpen()
 
+    mobileOwnBackButton: true
     showDefaultItem: mainItem.selectedChatGui == null
                      && listStackView.currentItem
                      && listStackView.currentItem.objectName == "chatListItem"
@@ -433,6 +434,9 @@ AbstractMainPage {
             }
             SelectedChatView {
                 id: selectedChatView
+                // Phone: back to the conversation list from the chat header
+                backButtonVisible: DefaultStyle.mobile
+                onBackButtonPressed: mainItem.closeDetail()
                 visible: chat != undefined
                 anchors.fill: parent
                 chat: mainItem.selectedChatGui ? mainItem.selectedChatGui : null

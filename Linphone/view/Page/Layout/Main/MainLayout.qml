@@ -156,6 +156,8 @@ Item {
             VerticalTabBar {
                 id: tabbar
                 horizontal: DefaultStyle.mobile
+                // Phone: no bottom navigation in a detail view or while typing (on-screen keyboard)
+                visible: !DefaultStyle.mobile || (!DefaultStyle.mobileDetailShown && !Qt.inputMethod.visible)
                 Layout.row: DefaultStyle.mobile ? 1 : 0
                 Layout.column: 0
                 Layout.fillHeight: !DefaultStyle.mobile
@@ -241,6 +243,7 @@ Item {
 
                 RowLayout {
                     id: topRow
+                    visible: !DefaultStyle.mobile || !DefaultStyle.mobileDetailShown
                     Layout.preferredHeight: Utils.getSizeWithScreenRatio(50)
                     Layout.topMargin: DefaultStyle.mobile ? Utils.getSizeWithScreenRatio(8) : 0
                     Layout.leftMargin: Utils.getSizeWithScreenRatio(DefaultStyle.mobile ? 12 : 45)

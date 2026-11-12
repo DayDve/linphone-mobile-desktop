@@ -67,6 +67,8 @@ AbstractMainPage {
             
         } else {
             rightPanelStackView.clear()
+            // Phone: nothing left to show (new contact cancelled), back to the list
+            mainItem.closeDetail()
         }
     }
     onSelectedContactChanged: {
