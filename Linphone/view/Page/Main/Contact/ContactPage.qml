@@ -43,6 +43,8 @@ AbstractMainPage {
         rightPanelStackView.clear()
         contactList.resetSelections()
     }
+    // Phone: back to the list clears the selection so the same contact can be opened again
+    onDetailClosed: contactList.resetSelections()
     function goToContactDetails(focusEditButton=false) {
         if (selectedContact) {
             var firstItem = rightPanelStackView.get(0)
@@ -86,7 +88,8 @@ AbstractMainPage {
         friendGui.core.familyName = UtilsCpp.getFamilyNameFromFullName(name)
         friendGui.core.appendAddress(address)
         if (!rightPanelStackView.currentItem
-                || rightPanelStackView.currentItem.objectName != "contactEdition")
+                || rightPanelStackView.currentItem.objectName != "contactEdition") {
+            mainItem.openDetail()
             rightPanelStackView.push(contactEdition, {
                                          "contact": friendGui,
                                          //: "Nouveau contact"
@@ -94,9 +97,11 @@ AbstractMainPage {
                                          // "Créer"
                                          "saveButtonText": qsTr("create")
                                      })
+        }
     }
 
     function editContact(friendGui) {
+        mainItem.openDetail()
         rightPanelStackView.push(contactEdition, {
                                      "contact": friendGui,
                                      //: "Modifier contact"
@@ -321,7 +326,10 @@ AbstractMainPage {
                                  | LinphoneEnums.MagicSearchSource.FavoriteFriends
                                  | LinphoneEnums.MagicSearchSource.LdapServers
                                  | LinphoneEnums.MagicSearchSource.RemoteCardDAV
-                    onHighlightedContactChanged: mainItem.selectedContact = highlightedContact
+                    onHighlightedContactChanged: {
+                        mainItem.selectedContact = highlightedContact
+                        if (highlightedContact) mainItem.openDetail()
+                    }
                     onContactDeletionRequested: contact => {
                         mainItem.deleteContact(contact)
                     }

@@ -25,13 +25,28 @@ FocusScope {
 	property int rightPanelStackBottomMargin: 0
 	signal noItemButtonPressed()
 
+	// Phone: list and detail are shown one at a time. Pages call openDetail() when the user
+	// picks an item; the back button in the detail view returns to the list.
+	property bool detailOpen: false
+	readonly property bool mobileListOnly: DefaultStyle.mobile && !detailOpen
+	readonly property bool mobileDetailOnly: DefaultStyle.mobile && detailOpen
+	signal detailClosed()
+	function openDetail() {
+		if (DefaultStyle.mobile) detailOpen = true
+	}
+	function closeDetail() {
+		detailOpen = false
+		detailClosed()
+	}
+	onVisibleChanged: if (!visible) detailOpen = false
+
 	Control.SplitView {
 		id: splitView
 		anchors.fill: parent
-    	anchors.topMargin: Utils.getSizeWithScreenRatio(10)
+    	anchors.topMargin: DefaultStyle.mobile ? 0 : Utils.getSizeWithScreenRatio(10)
 
 		handle: Rectangle {
-    		implicitWidth: Utils.getSizeWithScreenRatio(6)
+    		implicitWidth: DefaultStyle.mobile ? 0 : Utils.getSizeWithScreenRatio(6)
 			color: Control.SplitHandle.hovered ? DefaultStyle.main2_200 : DefaultStyle.grey_200
 		}
 		ColumnLayout {
@@ -39,20 +54,46 @@ FocusScope {
 			spacing:0
 			// Control.SplitView.fillWidth:false
 			Control.SplitView.fillHeight: true
-			Control.SplitView.preferredWidth: Utils.getSizeWithScreenRatio(404)
-    		Control.SplitView.minimumWidth: Utils.getSizeWithScreenRatio(200)
-    		Control.SplitView.maximumWidth: Utils.getSizeWithScreenRatio(500)
+			visible: !mainItem.mobileDetailOnly
+			Control.SplitView.fillWidth: mainItem.mobileListOnly
+			Control.SplitView.preferredWidth: DefaultStyle.mobile ? splitView.width : Utils.getSizeWithScreenRatio(404)
+    		Control.SplitView.minimumWidth: DefaultStyle.mobile ? 0 : Utils.getSizeWithScreenRatio(200)
+    		Control.SplitView.maximumWidth: DefaultStyle.mobile ? Number.POSITIVE_INFINITY : Utils.getSizeWithScreenRatio(500)
 		}
 		Rectangle {
 			id: rightPanel
 			clip: true
 			color: mainItem.rightPanelColor
-			Control.SplitView.fillWidth: true
+			visible: !mainItem.mobileListOnly
+			Control.SplitView.fillWidth: !mainItem.mobileListOnly
 			Control.SplitView.fillHeight: true
+
+			RowLayout {
+				id: mobileBackBar
+				visible: mainItem.mobileDetailOnly
+				anchors.left: parent.left
+				anchors.right: parent.right
+				anchors.top: parent.top
+				height: visible ? Utils.getSizeWithScreenRatio(44) : 0
+				Button {
+					style: ButtonStyle.noBackgroundOrange
+					icon.source: AppIcons.leftArrow
+					Layout.leftMargin: Utils.getSizeWithScreenRatio(8)
+					Layout.preferredWidth: Utils.getSizeWithScreenRatio(40)
+					Layout.preferredHeight: Utils.getSizeWithScreenRatio(40)
+					icon.width: Utils.getSizeWithScreenRatio(24)
+					icon.height: Utils.getSizeWithScreenRatio(24)
+					//: Return
+					Accessible.name: qsTr("return_accessible_name")
+					onClicked: mainItem.closeDetail()
+				}
+				Item { Layout.fillWidth: true }
+			}
 
 			StackLayout {
 				currentIndex: mainItem.showDefaultItem ? 0 : 1
 				anchors.fill: parent
+				anchors.topMargin: mobileBackBar.height
 				ColumnLayout {
 					id: defaultItem
 					

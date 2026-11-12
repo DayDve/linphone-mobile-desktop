@@ -10,7 +10,13 @@ import 'qrc:/qt/qml/Linphone/view/Control/Tool/Helper/utils.js' as Utils
 Control.TabBar {
 	id: mainItem
     //spacing: Utils.getSizeWithScreenRatio(32)
-    topPadding: Utils.getSizeWithScreenRatio(36)
+    topPadding: horizontal ? 0 : Utils.getSizeWithScreenRatio(36)
+
+	// Phone: bottom navigation bar (Linphone Android style: white, orange selected tab)
+	property bool horizontal: false
+	function tabColor(selected) {
+		return horizontal ? (selected ? DefaultStyle.main1_500_main : DefaultStyle.main2_600) : DefaultStyle.grey_0
+	}
 
 	property var model
 	readonly property alias cornerRadius: bottomLeftCorner.radius
@@ -59,7 +65,8 @@ Control.TabBar {
         currentIndex: mainItem.currentIndex
 
         spacing: mainItem.spacing
-        orientation: ListView.Vertical
+        orientation: mainItem.horizontal ? ListView.Horizontal : ListView.Vertical
+        interactive: !mainItem.horizontal
         // boundsBehavior: Flickable.StopAtBounds
         flickableDirection: Flickable.AutoFlickIfNeeded
         // snapMode: ListView.SnapToItem
@@ -74,12 +81,24 @@ Control.TabBar {
 		id: background
 		anchors.fill: parent
 		Rectangle {
+			visible: mainItem.horizontal
+			anchors.fill: parent
+			color: DefaultStyle.grey_0
+			Rectangle {
+				width: parent.width
+				height: 1
+				color: DefaultStyle.grey_200
+			}
+		}
+		Rectangle {
+			visible: !mainItem.horizontal
 			id: bottomLeftCorner
 			anchors.fill: parent
 			color: DefaultStyle.main1_500_main
             radius: Utils.getSizeWithScreenRatio(25)
 		}
 		Rectangle {
+			visible: !mainItem.horizontal
 			color: DefaultStyle.main1_500_main
 			anchors.left: parent.left
 			anchors.top: parent.top
@@ -87,6 +106,7 @@ Control.TabBar {
 			height: parent.height/2
 		}
 		Rectangle {
+			visible: !mainItem.horizontal
 			color: DefaultStyle.main1_500_main
 			y: parent.y + parent.height/2
 			width: parent.width
@@ -99,14 +119,15 @@ Control.TabBar {
 		Control.TabButton {
 			id: tabButton
 			objectName: "mainTab" + index
-			width: mainItem.width
+			width: !visible ? 0 : mainItem.horizontal ? mainItem.width / Math.max(mainItem.visibleCount, 1) : mainItem.width
+			height: mainItem.horizontal ? mainItem.height : implicitHeight
 			Binding on height {
 				when: !tabButton.visible
 				value: 0
 			}
-    		anchors.topMargin: index === 0 ? Utils.getSizeWithScreenRatio(36) : 0
-            bottomInset:  Utils.getSizeWithScreenRatio(32)
-            topInset:  Utils.getSizeWithScreenRatio(32)
+    		anchors.topMargin: index === 0 && !mainItem.horizontal ? Utils.getSizeWithScreenRatio(36) : 0
+            bottomInset:  mainItem.horizontal ? 0 : Utils.getSizeWithScreenRatio(32)
+            topInset:  mainItem.horizontal ? 0 : Utils.getSizeWithScreenRatio(32)
 			hoverEnabled: true
 			visible: modelData?.visible != undefined ? modelData.visible : true
 			onVisibleChanged: mainItem.updateVisibleCount()
@@ -164,7 +185,7 @@ Control.TabBar {
 					Layout.preferredHeight: buttonSize
 					Layout.alignment: Qt.AlignHCenter
 					fillMode: Image.PreserveAspectFit
-					colorizationColor: DefaultStyle.grey_0
+					colorizationColor: mainItem.tabColor(mainItem.currentIndex === index)
 					useColor: !modelData.colored
 					onStatusChanged: if (status === Image.Ready && !buttonText.visible) buttonText.visible = true
 				}
@@ -180,7 +201,7 @@ Control.TabBar {
 								: Utils.getSizeWithScreenRatio(400)
 						pixelSize: Utils.getSizeWithScreenRatio(11)
 					}
-					color: DefaultStyle.grey_0
+					color: mainItem.tabColor(mainItem.currentIndex === index)
 					Layout.fillWidth: true
 					Layout.preferredHeight: txtMeter.height
 					Layout.alignment: Qt.AlignHCenter

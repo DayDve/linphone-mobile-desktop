@@ -321,6 +321,7 @@ AbstractMainPage {
                             }
                             CallHistoryListView {
                                 id: historyListView
+                                onItemPressed: mainItem.openDetail()
                                 onContextMenuRequested: origin => Qt.callLater(function() {
                                     var detail = mainItem.rightPanelStackView.currentItem
                                     if (detail && detail.openOptions)

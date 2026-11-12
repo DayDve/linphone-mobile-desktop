@@ -21,8 +21,8 @@ AbstractWindow {
     }
 
 	color: DefaultStyle.grey_0
-    minimumWidth: Utils.getSizeWithScreenRatio(1020)
-    minimumHeight: Utils.getSizeWithScreenRatio(700)
+    minimumWidth: DefaultStyle.mobile ? 0 : Utils.getSizeWithScreenRatio(1020)
+    minimumHeight: DefaultStyle.mobile ? 0 : Utils.getSizeWithScreenRatio(700)
 
 	signal callCreated()
 	property var accountProxy

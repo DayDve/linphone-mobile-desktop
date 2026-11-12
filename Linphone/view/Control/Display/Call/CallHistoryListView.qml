@@ -28,6 +28,7 @@ ListView {
 
     signal resultsReceived
     signal contextMenuRequested(var origin)
+    signal itemPressed()	// user tapped a row (phone layout opens the detail view)
 
     onResultsReceived: {
         loading = false
@@ -300,6 +301,7 @@ ListView {
             }
             onPressed: {
                 mainItem.currentIndex = model.index
+                mainItem.itemPressed()
                 mainItem.forceActiveFocus()
                 mainItem.lastFocusByNavigationKeyboard = false
             }

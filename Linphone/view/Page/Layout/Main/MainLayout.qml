@@ -145,15 +145,23 @@ Item {
             }
         }
 
-        RowLayout {
+        // Desktop: tab bar on the left. Phone: content on top, tab bar at the bottom.
+        GridLayout {
             anchors.fill: parent
-            spacing: 0
-            anchors.topMargin: Utils.getSizeWithScreenRatio(25)
+            columns: DefaultStyle.mobile ? 1 : 2
+            rowSpacing: 0
+            columnSpacing: 0
+            anchors.topMargin: DefaultStyle.mobile ? 0 : Utils.getSizeWithScreenRatio(25)
 
             VerticalTabBar {
                 id: tabbar
-                Layout.fillHeight: true
-                Layout.preferredWidth: Utils.getSizeWithScreenRatio(82)
+                horizontal: DefaultStyle.mobile
+                Layout.row: DefaultStyle.mobile ? 1 : 0
+                Layout.column: 0
+                Layout.fillHeight: !DefaultStyle.mobile
+                Layout.fillWidth: DefaultStyle.mobile
+                Layout.preferredWidth: DefaultStyle.mobile ? -1 : Utils.getSizeWithScreenRatio(82)
+                Layout.preferredHeight: DefaultStyle.mobile ? Utils.getSizeWithScreenRatio(64) : -1
                 defaultAccount: accountProxy.defaultAccount
                 currentIndex: 0
                 onCountChanged: if (currentIndex >= count) currentIndex = 0
@@ -226,13 +234,18 @@ Item {
             }
             ColumnLayout {
                 spacing: 0
+                Layout.row: 0
+                Layout.column: DefaultStyle.mobile ? 0 : 1
+                Layout.fillWidth: true
+                Layout.fillHeight: true
 
                 RowLayout {
                     id: topRow
                     Layout.preferredHeight: Utils.getSizeWithScreenRatio(50)
-                    Layout.leftMargin: Utils.getSizeWithScreenRatio(45)
-                    Layout.rightMargin: Utils.getSizeWithScreenRatio(41)
-                    spacing: Utils.getSizeWithScreenRatio(25)
+                    Layout.topMargin: DefaultStyle.mobile ? Utils.getSizeWithScreenRatio(8) : 0
+                    Layout.leftMargin: Utils.getSizeWithScreenRatio(DefaultStyle.mobile ? 12 : 45)
+                    Layout.rightMargin: Utils.getSizeWithScreenRatio(DefaultStyle.mobile ? 8 : 41)
+                    spacing: Utils.getSizeWithScreenRatio(DefaultStyle.mobile ? 8 : 25)
                     SearchBar {
                         id: magicSearchBar
                         Layout.fillWidth: true
@@ -805,7 +818,7 @@ Item {
                     pushExit: noTransition
                     popEnter: noTransition
                     popExit: noTransition
-                    Layout.topMargin: Utils.getSizeWithScreenRatio(24)
+                    Layout.topMargin: Utils.getSizeWithScreenRatio(DefaultStyle.mobile ? 8 : 24)
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     initialItem: mainStackLayoutComponent

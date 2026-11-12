@@ -79,7 +79,8 @@ FocusScope {
 		//: Search bar : %1
 		Accessible.name: qsTr("search_bar_accessible_name").arg(mainItem.accessibleName)
 
-		focus: true
+		// Phone: never take focus implicitly, it pops up the on-screen keyboard
+		focus: !DefaultStyle.mobile
 		placeholderText: mainItem.placeholderText
 		placeholderTextColor: mainItem.placeholderTextColor
 		width: mainItem.width - dialerButton.width

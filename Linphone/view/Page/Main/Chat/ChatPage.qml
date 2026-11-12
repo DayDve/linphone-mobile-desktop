@@ -55,6 +55,7 @@ AbstractMainPage {
                 } else if (remoteChat.core.state === LinphoneEnums.ChatRoomState.Created) {
                     console.log("chat room state Created, open chat in right panel")
                     mainItem.selectedChatGui = remoteChat
+                    mainItem.openDetail()
                 }
             }
         }
@@ -236,6 +237,7 @@ AbstractMainPage {
                         }
                         ChatListView {
                             id: chatListView
+                            onChatClicked: mainItem.openDetail()
                             objectName: "chatListView"
                             Layout.fillWidth: true
                             Layout.fillHeight: true
@@ -255,6 +257,7 @@ AbstractMainPage {
                             Connections {
                                 target: mainItem
                                 function onOpenChatRequested(chat) {
+                                    mainItem.openDetail()
                                     chatListView.chatToSelect = chat
                                 }
                                 function onNewChatItemOpen() {
@@ -356,6 +359,7 @@ AbstractMainPage {
             property var groupChat: groupChatObj ? groupChatObj.value : null
             onGroupChatChanged: if (groupChat && groupChat.core.state === LinphoneEnums.ChatRoomState.Created) {
                 mainItem.selectedChatGui = groupChat
+                mainItem.openDetail()
             }
             Connections {
                 enabled: groupChat || false
@@ -364,6 +368,7 @@ AbstractMainPage {
                     if (chatCreationLayout.groupChat.core.state === LinphoneEnums.ChatRoomState.Created) {
                         mainWindow.closeLoadingPopup()
                         mainItem.selectedChatGui = chatCreationLayout.groupChat
+                        mainItem.openDetail()
                     } else if (chatCreationLayout.groupChat.core.state === LinphoneEnums.ChatRoomState.CreationFailed) {
                         mainWindow.closeLoadingPopup()
                         mainWindow.showInformationPopup(qsTr("information_popup_error_title"),

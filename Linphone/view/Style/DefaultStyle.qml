@@ -72,7 +72,12 @@ QtObject {
     property real defaultHeight: 1007.0
     property real defaultWidth: 1512.0
     property real maxDp: 0.98
-    property real dp: Math.min((Screen.width/Screen.height)/(defaultWidth/defaultHeight), maxDp)
+    // Phone: short screen side below 600 logical px (Plasma Mobile at scale 2.5 gives 432).
+    // A logical px there is already close to an Android dp, so use a fixed ratio instead of the
+    // aspect-ratio based one (about 0.32 in portrait, which makes everything three times smaller).
+    property bool mobile: Math.min(Screen.width, Screen.height) > 0 && Math.min(Screen.width, Screen.height) < 600
+    property real mobileDp: 1.0
+    property real dp: mobile ? mobileDp : Math.min((Screen.width/Screen.height)/(defaultWidth/defaultHeight), maxDp)
 
     onDpChanged: {
         console.log("Screen ratio changed", dp)
