@@ -39,8 +39,8 @@ Rectangle {
 		id: header
 		anchors.left: parent.left
 		anchors.right: parent.right
-        leftPadding: Utils.getSizeWithScreenRatio(45)
-        rightPadding: Utils.getSizeWithScreenRatio(45)
+        leftPadding: Utils.getSizeWithScreenRatio(DefaultStyle.mobile ? 16 : 45)
+        rightPadding: Utils.getSizeWithScreenRatio(DefaultStyle.mobile ? 16 : 45)
 		z: 1
 		background: Rectangle {
 			anchors.fill: parent
@@ -59,7 +59,7 @@ Rectangle {
 					icon.source: AppIcons.leftArrow
 					focus: true
 					visible: mainItem.container.depth > 1
-                    Layout.rightMargin: Utils.getSizeWithScreenRatio(41)
+                    Layout.rightMargin: Utils.getSizeWithScreenRatio(DefaultStyle.mobile ? 8 : 41)
 					style: ButtonStyle.noBackground
 					onClicked: {
 						mainItem.container.pop()
@@ -111,6 +111,8 @@ Rectangle {
 		anchors.top: header.bottom
         anchors.topMargin: Utils.getSizeWithScreenRatio(16)
 		contentHeight: contentListView.contentHeight
+		// Without it the content width follows the widest implicit width inside (wider than a phone screen)
+		contentWidth: availableWidth
 		// Workaround for the ScrollView to cover the whole page
 		Item{anchors.fill: parent}
 		Control.ScrollBar.vertical: ScrollBar {
@@ -131,13 +133,16 @@ Rectangle {
 			model: mainItem.contentModel
 			anchors.left: parent.left
 			anchors.right: parent.right
-			anchors.leftMargin: Utils.getSizeWithScreenRatio(45)
-			anchors.rightMargin: Utils.getSizeWithScreenRatio(45)
+			// Phone: narrow margins, every row takes the whole width (title above its controls)
+			anchors.leftMargin: Utils.getSizeWithScreenRatio(DefaultStyle.mobile ? 16 : 45)
+			anchors.rightMargin: Utils.getSizeWithScreenRatio(DefaultStyle.mobile ? 16 : 45)
 			height: contentHeight
 			spacing: Utils.getSizeWithScreenRatio(10)
 			delegate: ColumnLayout {
 				visible: modelData.visible != undefined ? modelData.visible: true
-				Component.onCompleted: if (!visible) height = 0
+				// Check the model, not the effective visibility: the page can be created while hidden (phone:
+				// the settings section panel is hidden until a section is chosen), which would collapse every row.
+				Component.onCompleted: if (modelData.visible === false) height = 0
 				spacing: Utils.getSizeWithScreenRatio(16)
 				width: contentListView.width
 				Rectangle {
@@ -156,8 +161,9 @@ Rectangle {
 					rowSpacing: modelData.title.length > 0 || modelData.subTitle.length > 0 ? Utils.getSizeWithScreenRatio(20) : 0
 					columnSpacing: Utils.getSizeWithScreenRatio(47)
 					ColumnLayout {
-						Layout.preferredWidth: Utils.getSizeWithScreenRatio(341)
-						Layout.maximumWidth: Utils.getSizeWithScreenRatio(341)
+						Layout.fillWidth: DefaultStyle.mobile
+						Layout.preferredWidth: DefaultStyle.mobile ? -1 : Utils.getSizeWithScreenRatio(341)
+						Layout.maximumWidth: DefaultStyle.mobile ? Number.POSITIVE_INFINITY : Utils.getSizeWithScreenRatio(341)
 						spacing: Utils.getSizeWithScreenRatio(3)
 						Text {
 							Accessible.role: Accessible.Heading
@@ -185,15 +191,23 @@ Rectangle {
 						Layout.topMargin: modelData.hideTopMargin ? 0 : Utils.getSizeWithScreenRatio(mainItem.useVerticalLayout ? 10 : 21)
 						Layout.bottomMargin: Utils.getSizeWithScreenRatio(21)
 						Layout.leftMargin: mainItem.useVerticalLayout ? 0 : Utils.getSizeWithScreenRatio(17)
-						Layout.preferredWidth: Utils.getSizeWithScreenRatio(modelData.width > 0 ? modelData.width : 545)
+						Layout.fillWidth: DefaultStyle.mobile
+						Layout.preferredWidth: DefaultStyle.mobile ? -1 : Utils.getSizeWithScreenRatio(modelData.width > 0 ? modelData.width : 545)
 						Layout.alignment: Qt.AlignRight
 						Loader {
 							id: contentLoader
 							Layout.fillWidth: true
 							sourceComponent: modelData.contentComponent
+							// Phone: the loaded item keeps its implicit width otherwise (wider than the screen)
+							Binding {
+								target: contentLoader.item
+								property: "width"
+								value: contentLoader.width
+								when: DefaultStyle.mobile && !!contentLoader.item
+							}
 						}
 						Item {
-							Layout.preferredWidth: Utils.getSizeWithScreenRatio(modelData.customRightMargin > 0 ? modelData.customRightMargin : 17)
+							Layout.preferredWidth: DefaultStyle.mobile ? 0 : Utils.getSizeWithScreenRatio(modelData.customRightMargin > 0 ? modelData.customRightMargin : 17)
 						}
 					}
 				}

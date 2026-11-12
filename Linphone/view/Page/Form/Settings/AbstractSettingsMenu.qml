@@ -29,7 +29,7 @@ AbstractMainPage {
 		id: leftPanel
 		Layout.fillWidth: true
 		Layout.fillHeight: true
-        property real sideMargin: Utils.getSizeWithScreenRatio(45)
+        property real sideMargin: Utils.getSizeWithScreenRatio(DefaultStyle.mobile ? 16 : 45)
         spacing: Utils.getSizeWithScreenRatio(5)
 		RowLayout {
 			Layout.fillWidth: true
@@ -68,7 +68,7 @@ AbstractMainPage {
 			Layout.fillWidth: true
 			Layout.fillHeight: true
 			model: mainItem.families
-            Layout.topMargin: Utils.getSizeWithScreenRatio(41)
+            Layout.topMargin: Utils.getSizeWithScreenRatio(DefaultStyle.mobile ? 16 : 41)
 			Layout.leftMargin: leftPanel.sideMargin
 			property int selectedIndex: mainItem.defaultIndex != -1 ? mainItem.defaultIndex : 0
 			spacing: Utils.getSizeWithScreenRatio(5)
@@ -100,6 +100,8 @@ AbstractMainPage {
 					familiesList.selectedIndex = index
 					rightPanelStackView.clear()
 					rightPanelStackView.push(layoutUrl(modelData.layout), { titleText: modelData.title, model: modelData.model, container: rightPanelStackView})
+					// Phone: the list fills the screen, show the chosen section full screen
+					mainItem.openDetail()
 				}
 			}
 		}

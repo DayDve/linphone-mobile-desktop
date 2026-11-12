@@ -91,7 +91,7 @@ FocusScope {
 			family: DefaultStyle.defaultFont
 		}
 		color: DefaultStyle.main2_600
-		selectByMouse: true
+		selectByMouse: !DefaultStyle.mobile
 		validator: mainItem.validator
 		onTextChanged: mainItem.delaySearch ? delayTimer.restart() : searchText = text
 		background: Item {

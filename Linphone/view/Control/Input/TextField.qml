@@ -54,7 +54,8 @@ Control.TextField {
         pixelSize: Typography.p1.pixelSize
         weight: Typography.p1.weight
     }
-    selectByMouse: true
+    // Phone: selecting by drag would keep the touch and block scrolling the page that holds the field
+    selectByMouse: !DefaultStyle.mobile
     activeFocusOnTab: true
     KeyNavigation.right: eyeButton
     text: initialText
