@@ -27,6 +27,20 @@ Notification {
 			close()
 		}
 	}
+	// Phone: no small popup, show the full screen call window with accept/decline.
+	// The shell maximizes every window, so a popup left open covers the call window and takes all taps.
+	// The data (and the call) is set before Notifier shows the window, and close() on a hidden window
+	// does nothing, so delete it after the current event instead.
+	property bool mobileCallWindowOpened: false
+	opacity: DefaultStyle.mobile ? 0 : 1
+	function openMobileCallWindow() {
+		if (!DefaultStyle.mobile || mobileCallWindowOpened || !call) return
+		mobileCallWindowOpened = true
+		UtilsCpp.openCallsWindow(call)
+		Qt.callLater(mainItem.deleteNotificationSlot)
+	}
+	onCallChanged: openMobileCallWindow()
+	Component.onCompleted: openMobileCallWindow()
 	onStatusChanged:{
 		console.log("status", status)
 	}

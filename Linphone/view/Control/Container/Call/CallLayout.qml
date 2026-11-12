@@ -124,8 +124,11 @@ Item {
         && mainItem.callState !== LinphoneEnums.CallState.OutgoingInit
 		&& !mainItem.conference?.core.isScreenSharingEnabled
 		&& mainItem.participantDeviceCount <= 2
-        height: Utils.getSizeWithScreenRatio(180)
-        width: Utils.getSizeWithScreenRatio(300)
+		// Without our own camera the tile only shows our avatar: hide it.
+		&& !!mainItem.call && mainItem.call.core.cameraEnabled
+		// Phone: small portrait tile like Android's local preview.
+        height: DefaultStyle.mobile ? 144 : Utils.getSizeWithScreenRatio(180)
+        width: DefaultStyle.mobile ? 108 : Utils.getSizeWithScreenRatio(300)
 		anchors.right: mainItem.right
 		anchors.bottom: mainItem.bottom
         anchors.rightMargin: Utils.getSizeWithScreenRatio(20)

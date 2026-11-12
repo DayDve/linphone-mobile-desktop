@@ -22,8 +22,8 @@ AbstractWindow {
            : joiningConferenceInfo
              ? qsTr("call_window_conference_title").arg(applicationName).arg(joiningConferenceInfo.core.subject)
              : applicationName
-    minimumWidth: Utils.getSizeWithScreenRatio(1020)
-    minimumHeight: Utils.getSizeWithScreenRatio(700)
+    minimumWidth: DefaultStyle.mobile ? 0 : Utils.getSizeWithScreenRatio(1020)
+    minimumHeight: DefaultStyle.mobile ? 0 : Utils.getSizeWithScreenRatio(700)
 
     // modality: Qt.WindowModal
     property CallGui call
@@ -1502,21 +1502,58 @@ AbstractWindow {
             // -----------------------------------------------------------------------------
             //  Bottom round buttons
             // -----------------------------------------------------------------------------
-            RowLayout {
+            // Phone: handle above the buttons, like the Android call sheet. Swipe up (or tap) shows the
+            // secondary actions (dialer, chat, pause, transfer, new call, call list, more), swipe down hides them.
+            Item {
+                id: mobileSheetHandle
+                visible: DefaultStyle.mobile && bottomButtonsLayout.visible && !bottomButtonsLayout.mobileIncoming
+                Layout.fillWidth: true
+                Layout.preferredHeight: 28
+                EffectImage {
+                    anchors.centerIn: parent
+                    width: 24
+                    height: 24
+                    imageSource: bottomButtonsLayout.mobileExpanded ? AppIcons.downArrow : AppIcons.upArrow
+                    colorizationColor: DefaultStyle.grey_0
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    anchors.topMargin: -12
+                    property real startY: 0
+                    onPressed: mouse => startY = mouse.y
+                    onReleased: mouse => {
+                        var dy = mouse.y - startY
+                        if (dy < -20) bottomButtonsLayout.mobileExpanded = true
+                        else if (dy > 20) bottomButtonsLayout.mobileExpanded = false
+                        else bottomButtonsLayout.mobileExpanded = !bottomButtonsLayout.mobileExpanded
+                    }
+                }
+            }
+            // Desktop: one row. Phone: [video][mic][end call]; when expanded the other controls join the first
+            // row and the call management buttons go to a second row. Incoming: only accept and decline.
+            GridLayout {
                 id: bottomButtonsLayout
                 Layout.alignment: Qt.AlignHCenter
-                spacing: Utils.getSizeWithScreenRatio(58)
+                columns: DefaultStyle.mobile ? 2 : 3
+                columnSpacing: Utils.getSizeWithScreenRatio(DefaultStyle.mobile ? 12 : 58)
+                rowSpacing: Utils.getSizeWithScreenRatio(12)
                 visible: middleItemStackView.currentItem.objectName == "inCallItem"
                 property bool moreOptionsButtonVisibility: true
+                property bool mobileExpanded: false
+                readonly property bool mobileIncoming: DefaultStyle.mobile && mainWindow.callState === LinphoneEnums.CallState.IncomingReceived
+                readonly property bool mobileCollapsed: DefaultStyle.mobile && !mobileExpanded
+                onMobileExpandedChanged: refreshLayout()
 
                 function refreshLayout() {
                     if (mainWindow.callState === LinphoneEnums.CallState.Connected
                             || mainWindow.callState === LinphoneEnums.CallState.StreamsRunning
                             || mainWindow.callState === LinphoneEnums.CallState.Paused
                             || mainWindow.callState === LinphoneEnums.CallState.PausedByRemote) {
-                        connectedCallButtons.visible = bottomButtonsLayout.visible
-                        moreOptionsButtonVisibility = bottomButtonsLayout.visible
-                        bottomButtonsLayout.layoutDirection = Qt.RightToLeft
+                        // Read mobileExpanded directly: this also runs from onMobileExpandedChanged, before
+                        // bindings depending on it (mobileCollapsed) are guaranteed to be updated.
+                        var shown = bottomButtonsLayout.visible && (!DefaultStyle.mobile || bottomButtonsLayout.mobileExpanded)
+                        connectedCallButtons.visible = shown
+                        moreOptionsButtonVisibility = shown
                     } else if (mainWindow.callState === LinphoneEnums.CallState.OutgoingInit
                                || mainWindow.callState === LinphoneEnums.CallState.IncomingReceived) {
                         connectedCallButtons.visible = false
@@ -1542,7 +1579,11 @@ AbstractWindow {
 
                 // End call button
                 RowLayout {
-                    spacing: Utils.getSizeWithScreenRatio(10)
+                    Layout.row: 0
+                    Layout.column: bottomButtonsLayout.mobileIncoming ? 0 : mainWindow.startingCall ? 0 : bottomButtonsLayout.columns - 1
+                    Layout.columnSpan: bottomButtonsLayout.mobileIncoming ? 2 : 1
+                    Layout.alignment: bottomButtonsLayout.mobileIncoming ? Qt.AlignHCenter : Qt.AlignVCenter
+                    spacing: Utils.getSizeWithScreenRatio(bottomButtonsLayout.mobileIncoming ? 80 : 10)
                     BigButton {
                         id: acceptCallButton
                         visible: mainWindow.callState === LinphoneEnums.CallState.IncomingReceived
@@ -1552,8 +1593,8 @@ AbstractWindow {
                         //: "Accepter l'appel"
                         ToolTip.text: qsTr("call_action_accept_call")
                         Accessible.name: qsTr("call_action_accept_call")
-                        Layout.preferredWidth: Utils.getSizeWithScreenRatio(75)
-                        Layout.preferredHeight: Utils.getSizeWithScreenRatio(55)
+                        Layout.preferredWidth: Utils.getSizeWithScreenRatio(bottomButtonsLayout.mobileIncoming ? 72 : 75)
+                        Layout.preferredHeight: Utils.getSizeWithScreenRatio(bottomButtonsLayout.mobileIncoming ? 72 : 55)
                         radius: Utils.getSizeWithScreenRatio(71)
                         style: ButtonStyle.phoneGreenLightBorder
                         Layout.column: mainWindow.startingCall ? 0 : bottomButtonsLayout.columns - 1
@@ -1572,8 +1613,8 @@ AbstractWindow {
                         //: "Terminer l'appel"
                         ToolTip.text: qsTr("call_action_end_call")
                         Accessible.name: qsTr("call_action_end_call")
-                        Layout.preferredWidth: Utils.getSizeWithScreenRatio(75)
-                        Layout.preferredHeight: Utils.getSizeWithScreenRatio(55)
+                        Layout.preferredWidth: Utils.getSizeWithScreenRatio(bottomButtonsLayout.mobileIncoming ? 72 : 75)
+                        Layout.preferredHeight: Utils.getSizeWithScreenRatio(bottomButtonsLayout.mobileIncoming ? 72 : 55)
                         radius: Utils.getSizeWithScreenRatio(71)
                         style: ButtonStyle.phoneRedLightBorder
                         Layout.column: mainWindow.startingCall ? 0 : bottomButtonsLayout.columns - 1
@@ -1593,8 +1634,10 @@ AbstractWindow {
                 RowLayout {
                     id: connectedCallButtons
                     visible: false
-                    Layout.row: 0
-                    Layout.column: 1
+                    Layout.row: DefaultStyle.mobile ? 1 : 0
+                    Layout.column: DefaultStyle.mobile ? 0 : 1
+                    Layout.columnSpan: DefaultStyle.mobile ? 2 : 1
+                    Layout.alignment: Qt.AlignHCenter
                     spacing: Utils.getSizeWithScreenRatio(10)
 
                     // Pause call button
@@ -1707,9 +1750,10 @@ AbstractWindow {
                 // -----------------------------------------------------------------------------
                 RowLayout {
                     id: controlCallButtons
+                    visible: !bottomButtonsLayout.mobileIncoming
                     Layout.row: 0
                     Layout.column: mainWindow.startingCall ? bottomButtonsLayout.columns - 1 : 0
-                    spacing: Utils.getSizeWithScreenRatio(10)
+                    spacing: Utils.getSizeWithScreenRatio(DefaultStyle.mobile ? 8 : 10)
 
                     // Video camera button
                     CheckableButton {
@@ -1769,7 +1813,7 @@ AbstractWindow {
                     CheckableButton {
                         id: dtmfPadButton
                         objectName: "dtmfPadButton"
-                        visible: mainWindow.dtmfPadAvailable
+                        visible: mainWindow.dtmfPadAvailable && !bottomButtonsLayout.mobileCollapsed
                         iconUrl: AppIcons.dialer
                         ToolTip.text: qsTr("call_action_show_dialer")
                         Accessible.name: qsTr("call_action_show_dialer")
@@ -1828,7 +1872,7 @@ AbstractWindow {
                     // Chat panel button
                     CheckableButton {
                         id: chatPanelButton
-                        visible: !SettingsCpp.disableChatFeature && (!mainWindow.conference || mainWindow.conference.core.isChatEnabled)
+                        visible: !bottomButtonsLayout.mobileCollapsed && !SettingsCpp.disableChatFeature && (!mainWindow.conference || mainWindow.conference.core.isChatEnabled)
                         iconUrl: AppIcons.chatTeardropText
                         //: Open chat…
                         ToolTip.text: qsTr("call_open_chat_hint")
