@@ -35,6 +35,8 @@ list(APPEND _LINPHONEAPP_SOURCES
 	tool/accessibility/EnterKeyActivator.cpp
 	tool/accessibility/FocusTrap.cpp
 
+	tool/phone/PhoneIntegration.cpp
+
 )
 
 if (APPLE)

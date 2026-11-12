@@ -35,6 +35,7 @@
 #include "model/call/CallModel.hpp"
 #include "model/tool/ToolModel.hpp"
 #include "tool/Utils.hpp"
+#include "tool/phone/PhoneIntegration.hpp"
 
 // =============================================================================
 DEFINE_ABSTRACT_OBJECT(CoreModel)
@@ -502,6 +503,7 @@ void CoreModel::onCallStateChanged(const std::shared_ptr<linphone::Core> &core,
 		if (!autoAnswered) {
 			if (App::getInstance()->getNotifier()) {
 				lInfo() << log().arg("Incoming received, display call notification");
+				PhoneIntegration::wakeScreen();
 				App::getInstance()->getNotifier()->notifyReceivedCall(call);
 			} else {
 				lWarning() << log().arg("App notifier is null ! Cannot display call notification");

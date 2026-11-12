@@ -250,6 +250,19 @@ foreach(T ${QT_PACKAGES})
 	target_link_libraries(${TARGET_NAME} PRIVATE Qt6::${T})
 endforeach()
 
+# Phone: show the calls window above the KDE lock screen (see tool/phone/PhoneIntegration).
+if (UNIX AND NOT APPLE)
+	find_package(Qt6 QUIET COMPONENTS WaylandClient GuiPrivate)
+	if (Qt6WaylandClient_FOUND AND COMMAND qt6_generate_wayland_protocol_client_sources)
+		qt6_generate_wayland_protocol_client_sources(${TARGET_NAME}
+			FILES "${CMAKE_CURRENT_SOURCE_DIR}/tool/phone/kde-lockscreen-overlay-v1.xml")
+		target_link_libraries(${TARGET_NAME} PRIVATE Qt6::WaylandClient Qt6::GuiPrivate)
+		target_compile_definitions(${TARGET_NAME} PRIVATE LINPHONE_WAYLAND_LOCKSCREEN_OVERLAY)
+	else()
+		message(STATUS "Qt6 WaylandClient not found: no calls window above the lock screen")
+	endif()
+endif()
+
 if (WIN32)
 	target_link_libraries(${TARGET_NAME} PRIVATE runtimeobject)
 	target_link_libraries(${TARGET_NAME} PRIVATE shlwapi propsys shell32)

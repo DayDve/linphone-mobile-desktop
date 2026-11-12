@@ -93,6 +93,7 @@
 #include "core/translator/DefaultTranslatorCore.hpp"
 #include "core/variant/VariantList.hpp"
 #include "core/videoSource/VideoSourceDescriptorGui.hpp"
+#include "model/core/CoreModel.hpp"
 #include "model/friend/FriendsManager.hpp"
 #include "model/object/VariantObject.hpp"
 #include "model/tool/ToolModel.hpp"
@@ -104,6 +105,7 @@
 #include "tool/accessibility/FocusHelper.hpp"
 #include "tool/accessibility/FocusTrap.hpp"
 #include "tool/accessibility/KeyboardShortcuts.hpp"
+#include "tool/phone/PhoneIntegration.hpp"
 #ifdef HAVE_CRASH_HANDLER
 #include "tool/crash_reporter/CrashReporter.hpp"
 #endif
@@ -1491,6 +1493,19 @@ QSharedPointer<CallList> App::getCallList() const {
 void App::setCallList(QSharedPointer<CallList> data) {
 	if (mCallList != data) {
 		mCallList = data;
+		// Phone: no screen lock or blanking from the first call (ringing included) until the last one ends.
+		// CallList::haveCall is not usable here: it stays false for the first call (set before the call is added).
+		static bool phoneConnected = false;
+		if (!phoneConnected && CoreModel::getInstance()) {
+			phoneConnected = true;
+			auto phone = PhoneIntegration::getInstance();
+			connect(
+			    CoreModel::getInstance().get(), &CoreModel::firstCallStarted, phone,
+			    [phone] { phone->setCallActive(true); }, Qt::QueuedConnection);
+			connect(
+			    CoreModel::getInstance().get(), &CoreModel::lastCallEnded, phone,
+			    [phone] { phone->setCallActive(false); }, Qt::QueuedConnection);
+		}
 		emit callsChanged();
 	}
 }
@@ -1658,7 +1673,9 @@ bool App::generateDesktopFile(const QString &confPath, bool remove, bool openInB
 	                      ";x-scheme-handler/" EXECUTABLE_NAME "-sip;x-scheme-handler/" EXECUTABLE_NAME
 	                      "-sips;x-scheme-handler/sip;x-scheme-handler/sips;x-scheme-handler/tel;x-scheme-handler/"
 	                      "callto;x-scheme-handler/" EXECUTABLE_NAME "-config;\n"
-	                      "X-PulseAudio-Properties=media.role=phone\n";
+	                      "X-PulseAudio-Properties=media.role=phone\n"
+	                      // KWin: let the calls window show above the lock screen (phones).
+	                      "X-KDE-Wayland-Interfaces=kde_lockscreen_overlay_v1\n";
 
 	return true;
 }

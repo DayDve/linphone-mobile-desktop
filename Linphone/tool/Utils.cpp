@@ -21,6 +21,7 @@
 #define NOMINMAX
 
 #include "Utils.hpp"
+#include "tool/phone/PhoneIntegration.hpp"
 
 #include "UriTools.hpp"
 #include "core/App.hpp"
@@ -250,7 +251,12 @@ void Utils::showCallsWindow(QQuickWindow *window) {
 		if (!window->isVisible()) window->showMinimized();
 		return;
 	}
+	// KWin needs the toplevel to exist (after show) but no buffer yet (before the first frame, which waits for
+	// the configure round trip): allow it above the lock screen right after showing it. A hidden window gets a
+	// new surface when shown again, so do it on every show.
+	bool wasHidden = !window->isVisible();
 	smartShowWindow(window);
+	if (wasHidden) PhoneIntegration::getInstance()->allowAboveLockscreen(window);
 }
 
 QQuickWindow *Utils::getOrCreateCallsWindow(CallGui *callGui) {
