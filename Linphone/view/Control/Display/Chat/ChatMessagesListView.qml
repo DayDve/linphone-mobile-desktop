@@ -120,7 +120,21 @@ ListView {
         mainItem.lastItemVisible = lastMessage.isFullyVisible
         eventLogProxy.markIndexAsRead(index)
     }
-    onHeightChanged: if (initialPositionPending) Qt.callLater(positionAtFirstUnread)
+    // Keep the bottom of the view in place when it is resized (on-screen keyboard shown or hidden):
+    // the newest messages stay visible above the input field. Qt keeps the top when the view shrinks.
+    property real bottomEdge: 0 // contentY + height, as last scrolled
+    property real laidOutHeight: 0
+    onContentYChanged: if (height === laidOutHeight) bottomEdge = contentY + height
+    onHeightChanged: {
+        var resized = laidOutHeight > 0 && height > 0
+        laidOutHeight = height
+        if (initialPositionPending) {
+            Qt.callLater(positionAtFirstUnread)
+        } else if (resized) {
+            contentY = bottomEdge - height
+            returnToBounds()
+        }
+    }
     onContentHeightChanged: if (initialPositionPending) Qt.callLater(positionAtFirstUnread)
     onChatChanged: initialPositionPending = false
 
