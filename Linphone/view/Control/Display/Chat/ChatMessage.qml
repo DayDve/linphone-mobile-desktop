@@ -491,7 +491,10 @@ Control.Control {
                     id: optionsMenu
                     popUpTitle: qsTr("chat_message_options_accessible_name")
                     popup.padding: 0
-                    popup.contentItem: ColumnLayout {
+                    // Created when opened, like the reactions popup below: one per message.
+                    popup.contentItem: Loader {
+                        active: optionsMenu.popup.visible
+                        sourceComponent: ColumnLayout {
                         spacing: 0
                         IconLabelButton {
                             visible: mainItem.msgState === LinphoneEnums.ChatMessageState.StateNotDelivered
@@ -596,6 +599,7 @@ Control.Control {
                             }
                             style: ButtonStyle.hoveredBackgroundRed
                         }
+                        }
                     }
                 }
                 PopupButton {
@@ -603,7 +607,10 @@ Control.Control {
                     popUpTitle: qsTr("chat_message_react_accessible_name")
                     style: ButtonStyle.noBackground
                     icon.source: AppIcons.smiley
-                    popup.contentItem: RowLayout {
+                    // Created when opened: every message has this popup, and the emoji picker in it is heavy.
+                    popup.contentItem: Loader {
+                        active: emojiButton.popup.visible
+                        sourceComponent: RowLayout {
                         Repeater {
                             model: ConstantsCpp.reactionsList
                             delegate: Button {
@@ -630,7 +637,9 @@ Control.Control {
                             icon.source: AppIcons.plusCircle
                             popup.width: Utils.getSizeWithScreenRatio(393)
                             popup.height: Utils.getSizeWithScreenRatio(291)
-                            popup.contentItem: EmojiPicker {
+                            popup.contentItem: Loader {
+                                active: emojiPickerButton.popup.visible
+                                sourceComponent: EmojiPicker {
                                 id: emojiPicker
                                 onEmojiClicked: (emoji) => {
                                     if (mainItem.chatMessage) {
@@ -640,7 +649,9 @@ Control.Control {
                                     emojiPickerButton.close()
                                     emojiButton.close()
                                 }
+                                }
                             }
+                        }
                         }
                     }
                 }

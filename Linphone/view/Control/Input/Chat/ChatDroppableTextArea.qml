@@ -86,25 +86,26 @@ Control.Control {
 				PopupButton {
 					id: emojiPickerButton
 					popUpTitle: qsTr("chat_emoji_picker_accessible_name")
-					visible: !mainItem.isEditing
+					// Phone: the on-screen keyboard has its own emojis (as in Linphone Android).
+					visible: !mainItem.isEditing && !(DefaultStyle.mobile && Qt.inputMethod.visible)
 					style: ButtonStyle.noBackground
 					icon.source: checked ? AppIcons.closeX : AppIcons.smiley
 					popupY: - popup.height
 					popup.width: Utils.getSizeWithScreenRatio(393)
 					popup.height: Utils.getSizeWithScreenRatio(291)
-					popup.contentItem: EmojiPicker {
-						id: emojiPicker
-						editor: sendingTextArea
+					// Created when opened: ~1900 colour emoji glyphs take seconds to load on a phone.
+					popup.contentItem: Loader {
+						id: emojiPickerLoader
+						active: emojiPickerButton.popup.visible
+						sourceComponent: EmojiPicker {
+							editor: sendingTextArea
+						}
 					}
 					Connections {
 						target: emojiPickerButton.popup
 						function onOpened() {
-							emojiPicker.forceActiveFocus()
+							if (emojiPickerLoader.item) emojiPickerLoader.item.forceActiveFocus()
 						}
-						function onClosed() {
-							emojiPicker.clearSearchField()
-						}
-
 					}
 				}
 				BigButton {

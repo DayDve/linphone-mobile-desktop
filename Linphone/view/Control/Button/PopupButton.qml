@@ -75,12 +75,22 @@ Button {
         return content.children.some(child => isFocusable(child));
     }
 
+    // The item holding the popup entries: contents created on demand sit in a Loader.
+    function popupContent() {
+        var content = popup.contentItem;
+        if (content instanceof Loader)
+            return content.item;
+        return content instanceof FocusScope ? content.children[0] : content;
+    }
+
     function getPreviousItem(index) {
-        return _getPreviousItem(popup.contentItem instanceof FocusScope ? popup.contentItem.children[0] : popup.contentItem, index);
+        var content = popupContent();
+        return content ? _getPreviousItem(content, index) : null;
     }
 
     function getNextItem(index) {
-        return _getNextItem(popup.contentItem instanceof FocusScope ? popup.contentItem.children[0] : popup.contentItem, index);
+        var content = popupContent();
+        return content ? _getNextItem(content, index) : null;
     }
 
     function _getPreviousItem(content, index) {
@@ -115,10 +125,12 @@ Button {
                 mainItem.forceActiveFocus(Qt.TabFocusReason);
                 event.accepted = true;
             } else if (event.key == Qt.Key_Up) {
-                getPreviousItem(0).forceActiveFocus(Qt.TabFocusReason);
+                var previous = getPreviousItem(0);
+                if (previous) previous.forceActiveFocus(Qt.TabFocusReason);
                 event.accepted = true;
             } else if (event.key == Qt.Key_Tab || event.key == Qt.Key_Down) {
-                getNextItem(-1).forceActiveFocus(Qt.BacktabFocusReason);
+                var next = getNextItem(-1);
+                if (next) next.forceActiveFocus(Qt.BacktabFocusReason);
                 event.accepted = true;
             }
         } else if (event.key == Qt.Key_Space || event.key == Qt.Key_Enter || event.key == Qt.Key_Return) {
@@ -206,6 +218,11 @@ Button {
             var globalPos = mapToItem(mainItem.Window.contentItem, x, y);
             if (globalPos.x + popupWidth >= mainItem.Window.width) {
                 x = -popupWidth;
+            }
+            // A narrow window (phone) has room on neither side: stay inside it, over the button.
+            globalPos = mapToItem(mainItem.Window.contentItem, x, y);
+            if (globalPos.x < 0) {
+                x -= globalPos.x;
             }
         }
 
