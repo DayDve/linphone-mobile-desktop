@@ -106,6 +106,24 @@ ListView {
         }
     }
 
+    // Show the oldest unread message at the top of the view, the newer ones below it (the list is
+    // bottom-to-top, so ListView.End is the top; the view stops at the newest message by itself).
+    // The view may have no size or delegates yet, e.g. when the chat is opened from a notification
+    // while the window is still hidden: position it again once it is laid out.
+    property bool initialPositionPending: false
+    function positionAtFirstUnread() {
+        var index = eventLogProxy.findFirstUnreadIndex()
+        mainItem.positionViewAtIndex(index, ListView.End)
+        var lastMessage = itemAtIndex(0)
+        initialPositionPending = !lastMessage || height <= 0
+        if (initialPositionPending) return
+        mainItem.lastItemVisible = lastMessage.isFullyVisible
+        eventLogProxy.markIndexAsRead(index)
+    }
+    onHeightChanged: if (initialPositionPending) Qt.callLater(positionAtFirstUnread)
+    onContentHeightChanged: if (initialPositionPending) Qt.callLater(positionAtFirstUnread)
+    onChatChanged: initialPositionPending = false
+
     onAtYBeginningChanged: {
         if (atYBeginning && count !== 0) {
             eventLogProxy.displayMore()
@@ -131,6 +149,7 @@ ListView {
     Connections {
         target: mainWindow
         function onActiveChanged() {
+            if (mainWindow.active && mainItem.initialPositionPending) mainItem.positionAtFirstUnread()
             if (mainWindow.active && mainItem.atYEnd && mainItem.chat) mainItem.chat.core.lMarkAsRead()
         }
     }
@@ -150,12 +169,7 @@ ListView {
         onModelReset: loading = false
         onModelUpdated: {
             loading = false
-            var index = eventLogProxy.findFirstUnreadIndex()
-            var itemToSelect = mainItem.itemAtIndex(index)
-            mainItem.positionViewAtIndex(index, ListView.Beginning)
-            var lastMessage = itemAtIndex(0)
-            mainItem.lastItemVisible = lastMessage.isFullyVisible
-            eventLogProxy.markIndexAsRead(index)
+            mainItem.positionAtFirstUnread()
         }
         onEventInsertedByUser: (index) => {
             mainItem.positionViewAtIndex(index, ListView.Beginning)
