@@ -22,6 +22,7 @@
 
 #include "core/App.hpp"
 #include "core/call/CallGui.hpp"
+#include "core/chat/ChatCore.hpp"
 #include "core/chat/ChatGui.hpp"
 #include "core/event-filter/LockEventFilter.hpp"
 #include "tool/Utils.hpp"
@@ -50,9 +51,86 @@ NotificationBackend::NotificationBackend(QObject *parent) : AbstractNotification
 
 	QDBusConnection::sessionBus().connect(SERVICE, PATH, INTERFACE, "NotificationClosed", this,
 	                                      SLOT(onNotificationClosed(uint, uint)));
+
+	// Sent by the server right before ActionInvoked: lets the window we show get the focus on Wayland.
+	QDBusConnection::sessionBus().connect(SERVICE, PATH, INTERFACE, "ActivationToken", this,
+	                                      SLOT(onActivationToken(uint, QString)));
+}
+
+bool NotificationBackend::isAvailable() const {
+	return mInterface && mInterface->isValid();
+}
+
+uint NotificationBackend::send(uint replacesId,
+                               const QString &summary,
+                               const QString &body,
+                               const QStringList &actions,
+                               const QVariantMap &hints,
+                               int timeout) {
+	if (!isAvailable()) return 0;
+	QDBusReply<uint> reply = mInterface->call(QStringLiteral("Notify"), QStringLiteral(APPLICATION_NAME), replacesId,
+	                                          QStringLiteral(EXECUTABLE_NAME), summary, body, actions, hints, timeout);
+	if (!reply.isValid()) {
+		qWarning() << "Notify() failed:" << reply.error().message();
+		return 0;
+	}
+	return reply.value();
+}
+
+static QVariantMap baseHints(const QString &category) {
+	QVariantMap hints;
+	hints["category"] = category;
+	// Ties the notification to the application (icon, name, notification settings in Plasma).
+	hints["desktop-entry"] = QStringLiteral(EXECUTABLE_NAME);
+	hints["urgency"] = QVariant::fromValue(uchar(1)); // normal
+	// Without it Plasma drops the actions once the popup expires: the entry in the history is not clickable anymore.
+	// We close it ourselves when it is used or not relevant anymore.
+	hints["resident"] = true;
+	return hints;
 }
 
 void NotificationBackend::sendMessageNotification(QVariantMap data) {
+	auto chat = data["chat"].value<ChatGui *>();
+	QString key = data["chatRoomAddress"].toString();
+	QString body = data["message"].toString();
+	if (data["isGroupChat"].toBool()) body = data["remoteAddress"].toString() + QStringLiteral(": ") + body;
+
+	// One notification per conversation: a new message replaces the previous one.
+	uint previousId = mChatNotifIds.value(key, 0);
+	uint id = send(previousId, data["chatRoomName"].toString(), body.toHtmlEscaped(),
+	               {QStringLiteral("default"), QString()}, baseHints(QStringLiteral("im.received")), -1);
+	if (!id) {
+		if (chat) chat->deleteLater();
+		return;
+	}
+	if (previousId && previousId != id) mCurrentNotifications.remove(previousId);
+	auto previous = mCurrentNotifications.take(id);
+	if (auto oldChat = previous.data["chat"].value<ChatGui *>(); oldChat && oldChat != chat) oldChat->deleteLater();
+	mChatNotifIds.insert(key, id);
+	mCurrentNotifications.insert(id, {AbstractNotificationBackend::NotificationType::ReceivedMessage, data});
+
+	// The conversation was read in the application: the notification is not needed anymore.
+	if (chat && mChatReadWatchers.value(key).toStrongRef().data() != chat->mCore.get()) {
+		mChatReadWatchers.insert(key, chat->mCore);
+		connect(chat->mCore.get(), &ChatCore::unreadMessagesCountChanged, this, [this, key](int count) {
+			if (count == 0 && mChatNotifIds.contains(key)) closeNotification(mChatNotifIds.value(key));
+		});
+	}
+}
+
+void NotificationBackend::sendMissedCallNotification(QVariantMap data) {
+	//: "Call back" : action of the missed call notification.
+	QStringList actions = {QStringLiteral("default"), QString(), QStringLiteral("callback"),
+	                       tr("notification_call_back")};
+	uint id =
+	    send(0, QCoreApplication::translate("CallPage", "notification_missed_call_title"),
+	         data["displayName"].toString().toHtmlEscaped(), actions, baseHints(QStringLiteral("call.unanswered")), -1);
+	if (id) mCurrentNotifications.insert(id, {AbstractNotificationBackend::NotificationType::MissedCall, data});
+}
+
+void NotificationBackend::onActivationToken(uint id, const QString &token) {
+	// Qt Wayland uses it (and clears it) on the next QWindow::requestActivate().
+	if (mCurrentNotifications.contains(id)) qputenv("XDG_ACTIVATION_TOKEN", token.toUtf8());
 }
 
 uint NotificationBackend::sendCallNotification(QVariantMap data) {
@@ -126,9 +204,22 @@ void NotificationBackend::closeNotification(uint id) {
 		return;
 	}
 	mInterface->call("CloseNotification", id);
-	mCurrentNotifications.remove(id);
 
 	if (mActiveCallNotifId == id) mActiveCallNotifId = 0;
+	forget(id);
+}
+
+void NotificationBackend::forget(uint id) {
+	auto notif = mCurrentNotifications.take(id);
+	for (auto it = mChatNotifIds.begin(); it != mChatNotifIds.end(); ++it) {
+		if (it.value() == id) {
+			mChatNotifIds.erase(it);
+			break;
+		}
+	}
+	if (notif.type == AbstractNotificationBackend::NotificationType::ReceivedMessage) {
+		if (auto chat = notif.data["chat"].value<ChatGui *>()) chat->deleteLater();
+	}
 }
 
 void NotificationBackend::onActionInvoked(uint id, const QString &actionKey) {
@@ -151,15 +242,31 @@ void NotificationBackend::onActionInvoked(uint id, const QString &actionKey) {
 			callGui->mCore->lDecline();
 		}
 	} else if (notif.type == AbstractNotificationBackend::NotificationType::ReceivedMessage) {
+		if (auto chat = notif.data["chat"].value<ChatGui *>()) {
+			mCurrentNotifications[id].data.remove("chat"); // Now used by the main window: do not delete it.
+			Utils::openChat(chat);
+		}
+	} else if (notif.type == AbstractNotificationBackend::NotificationType::MissedCall) {
+		if (actionKey == "callback") {
+			Utils::createCall(notif.data["remoteAddress"].toString());
+		} else if (auto mainWindow = Utils::getMainWindow()) {
+			Utils::smartShowWindow(mainWindow);
+			QMetaObject::invokeMethod(mainWindow, "goToCallHistory");
+		}
 	}
 
 	qDebug() << "Close notification";
-	mCurrentNotifications.remove(id);
 	closeNotification(id);
 }
 
 void NotificationBackend::onNotificationClosed(uint id, uint reason) {
 	// Raisons : 1=expired, 2=dismissed, 3=CloseNotification(), 4=undefined
+	if (mCurrentNotifications.contains(id) &&
+	    mCurrentNotifications.value(id).type != AbstractNotificationBackend::NotificationType::ReceivedCall) {
+		forget(id);
+		emit notificationClosed(id, reason);
+		return;
+	}
 	if (mCurrentNotifications.contains(id)) {
 		qDebug() << "Notification fermée — id:" << id << "raison:" << reason;
 		mCurrentNotifications.remove(id);
@@ -185,6 +292,9 @@ void NotificationBackend::sendNotification(NotificationType type, QVariantMap da
 			break;
 		case NotificationType::ReceivedMessage:
 			sendMessageNotification(data);
+			break;
+		case NotificationType::MissedCall:
+			sendMissedCallNotification(data);
 			break;
 	}
 }

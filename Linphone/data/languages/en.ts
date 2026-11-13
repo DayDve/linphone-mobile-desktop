@@ -5857,6 +5857,12 @@ Expiration : %1</translation>
 <context>
     <name>NotificationBackend</name>
     <message>
+        <location filename="../../core/notifier/SysTrayNotificationBackend.cpp" line="119"/>
+        <source>notification_call_back</source>
+        <extracomment>&quot;Call back&quot; : action of the missed call notification.</extracomment>
+        <translation>Call back</translation>
+    </message>
+    <message>
         <source>info_popup_error_title</source>
         <translation type="vanished">Error</translation>
     </message>

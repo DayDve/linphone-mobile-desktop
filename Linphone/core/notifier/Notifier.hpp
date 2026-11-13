@@ -44,6 +44,7 @@ public:
 
 	// void notifyReceivedCall(Call *call);
 	void notifyReceivedCall(const std::shared_ptr<linphone::Call> &call); // Call from Linphone
+	void notifyMissedCall(const std::shared_ptr<linphone::Call> &call);   // Incoming call ended unanswered
 
 	void notifyReceivedMessages(const std::shared_ptr<linphone::ChatRoom> &room,
 	                            const std::list<std::shared_ptr<linphone::ChatMessage>> &messages);

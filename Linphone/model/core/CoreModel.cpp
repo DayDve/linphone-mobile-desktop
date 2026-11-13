@@ -523,6 +523,8 @@ void CoreModel::onCallStateChanged(const std::shared_ptr<linphone::Core> &core,
 			Utils::runCommandLine(command);
 		}
 	}
+	if (state == linphone::Call::State::Released && App::getInstance()->getNotifier())
+		App::getInstance()->getNotifier()->notifyMissedCall(call);
 	if (state == linphone::Call::State::End && SettingsModel::dndEnabled(core->getConfig()) &&
 	    core->getCallsNb() == 0) { // Disable tones in DND mode if no more calls are running.
 		SettingsModel::getInstance()->setCallToneIndicationsEnabled(false);

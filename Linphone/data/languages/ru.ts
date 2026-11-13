@@ -7530,6 +7530,12 @@ Failed to create 1-1 conversation with %1 !</extracomment>
 <context>
     <name>NotificationBackend</name>
     <message>
+        <location filename="../../core/notifier/SysTrayNotificationBackend.cpp" line="119"/>
+        <source>notification_call_back</source>
+        <extracomment>&quot;Call back&quot; : action of the missed call notification.</extracomment>
+        <translation>Перезвонить</translation>
+    </message>
+    <message>
         <location filename="../../core/notifier/SysTrayNotificationBackend.cpp" line="65"/>
         <source>incoming_call</source>
         <translation>Входящий звонок</translation>

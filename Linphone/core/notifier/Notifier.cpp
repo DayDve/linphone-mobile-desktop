@@ -147,6 +147,22 @@ bool Notifier::createNotification(AbstractNotificationBackend::NotificationType 
 	}
 	notifBackend->sendNotification(type, data);
 #else
+#ifdef Q_OS_LINUX
+	// Messages and missed calls go to the desktop notification server: they stay in its history and on the lock
+	// screen. The incoming call keeps the application popup (it opens the calls window).
+	if (type != AbstractNotificationBackend::ReceivedCall) {
+		auto notifBackend = App::getInstance()->getNotificationBackend();
+		if (notifBackend && notifBackend->isAvailable()) {
+			notifBackend->sendNotification(type, data);
+			mMutex->unlock();
+			return true;
+		}
+	}
+#endif
+	if (!Notifications.contains(type)) { // No popup for this kind of notification.
+		mMutex->unlock();
+		return false;
+	}
 
 	if (mInstancesNumber >= MaxNotificationsNumber) { // Check existing instances.
 		lWarning() << QStringLiteral("Unable to create another notification.");
@@ -368,6 +384,30 @@ void Notifier::notifyReceivedCall(const shared_ptr<linphone::Call> &call) {
 		map["call"].setValue(gui);
 
 		CREATE_NOTIFICATION(AbstractNotificationBackend::ReceivedCall, map)
+	});
+}
+
+void Notifier::notifyMissedCall(const shared_ptr<linphone::Call> &call) {
+	mustBeInLinphoneThread(log().arg(Q_FUNC_INFO));
+	auto callLog = call->getCallLog();
+	if (!callLog || callLog->getDir() != linphone::Call::Dir::Incoming ||
+	    callLog->getStatus() != linphone::Call::Status::Missed)
+		return;
+	if (auto account = ToolModel::findAccount(call->getToAddress())) {
+		auto accountModel = Utils::makeQObject_ptr<AccountModel>(account);
+		if (!accountModel->getNotificationsAllowed()) return;
+	}
+	auto remoteAddress = call->getRemoteAddress();
+	QString displayName = callLog->getConferenceInfo()
+	                          ? Utils::coreStringToAppString(callLog->getConferenceInfo()->getSubject())
+	                          : ToolModel::getDisplayName(remoteAddress);
+	QString address = Utils::coreStringToAppString(remoteAddress->asStringUriOnly());
+	App::postCoreAsync([this, displayName, address]() {
+		mustBeInMainThread(getClassName());
+		QVariantMap map;
+		map["displayName"] = displayName;
+		map["remoteAddress"] = address;
+		CREATE_NOTIFICATION(AbstractNotificationBackend::MissedCall, map)
 	});
 }
 
