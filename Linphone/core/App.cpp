@@ -857,7 +857,10 @@ void App::initCore() {
 #endif // if defined(__APPLE__)
 
 						        static bool firstOpen = true;
-						        if (!firstOpen || !mParser->isSet("minimized")) {
+						        // --minimized (autostart): keep the main window hidden on the first open. The
+						        // window->show() further down used to show it anyway.
+						        const bool stayMinimized = firstOpen && mParser->isSet("minimized");
+						        if (!stayMinimized) {
 							        lDebug() << log().arg("Openning window");
 							        if (window) window->show();
 						        } else lInfo() << log().arg("Stay minimized");
@@ -903,8 +906,10 @@ void App::initCore() {
 							        }
 						        }
 						        if (mSettings->autoCheckForUpdateOnStart()) checkForUpdate();
-						        window->show();
-						        window->requestActivate();
+						        if (!stayMinimized) {
+							        window->show();
+							        window->requestActivate();
+						        }
 
 						        //---------------------------------------------------------------------------------------------
 						        lDebug() << log().arg("Creating KeyboardShortcuts");
