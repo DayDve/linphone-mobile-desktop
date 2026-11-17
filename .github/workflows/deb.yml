@@ -1,0 +1,62 @@
+name: deb
+
+on:
+  push:
+    branches: [mobile]
+    paths-ignore: ['**.md']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: deb
+  cancel-in-progress: true
+
+jobs:
+  deb:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Submodules
+        # only what the build uses: the sdk and, inside it, the codecs and liboqs;
+        # the other third-party libraries come from Debian
+        run: |
+          git submodule update --init external/linphone-sdk
+          git -C external/linphone-sdk submodule update --init bcg729 bcmatroska2 external/liboqs
+
+      - name: Version
+        id: v
+        run: |
+          desc=$(git describe --tags)
+          ver=$(echo "$desc" | sed -E 's/^([0-9.]+)-([0-9]+)-g([0-9a-f]+)$/\1+mobile\2.g\3/; s/^([0-9.]+)$/\1+mobile0/')
+          echo "version=$ver" >> "$GITHUB_OUTPUT"
+          echo "tag=v$(echo "$ver" | tr '+' '-')" >> "$GITHUB_OUTPUT"
+
+      - name: Build image
+        run: docker build --pull -t build packaging
+
+      - name: Build
+        run: |
+          docker run --rm -u "$(id -u):$(id -g)" -v "$PWD:/src" -w /src build packaging/build.sh
+
+      - name: Package
+        run: |
+          docker run --rm -u "$(id -u):$(id -g)" -v "$PWD:/src" -w /src build \
+            packaging/make-deb.sh "${{ steps.v.outputs.version }}"
+
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.v.outputs.tag }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" build/*.deb --clobber
+          else
+            gh release create "$TAG" build/*.deb --target "${{ github.sha }}" --title "$TAG" \
+              --notes "Built from ${{ github.sha }} for Debian forky arm64 (Mobian). Install: sudo apt install ./linphone-mobile_*.deb"
+          fi
